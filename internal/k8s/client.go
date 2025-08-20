@@ -33,7 +33,6 @@ func CountPods() {
 		panic(err.Error())
 	}
 
-
 	pods, err := clientset.CoreV1().Pods("").List(context.TODO(), v1.ListOptions{})
 	if err != nil {
 		panic(err.Error())
