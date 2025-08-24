@@ -1,0 +1,17 @@
+[2025-08-23 14:27:03] info: ✅ GitHub client initialized with correct configuration
+[2025-08-23 14:27:03] info: 🔑 GitHub token configured: YES
+[2025-08-23 14:27:03] info: 📏 Token length: 40
+[2025-08-23 14:27:03] info: 🔗 Base URL: https://api.github.com
+[2025-08-23 14:27:03] info: 🤖 User-Agent: github-mcp-v2/4.4.0
+[2025-08-23 14:27:03] info: 🔍 Testing GitHub API connectivity...
+[2025-08-23 14:27:03] info: 🎯 Starting GitHub MCP V2 Auto-Owner Edition...
+[2025-08-23 14:27:03] info: 📦 Server version: 4.5.0
+[2025-08-23 14:27:03] info: 🔧 Environment: development
+[2025-08-23 14:27:03] info: ⚡ Features: 16 consolidated tools with automatic owner detection
+[2025-08-23 14:27:03] info: ✅ GitHub MCP V2 Auto-Owner Edition Server is running!
+[2025-08-23 14:27:03] info: 🎯 Auto-Owner Mode: All tools automatically detect your GitHub username
+[2025-08-23 14:27:03] info: ✅ GitHub API connection successful! Authenticated as: jacobbanks
+[2025-08-23 14:27:03] info: 👤 User: banks
+[2025-08-23 14:27:03] info: 📧 Email: Private
+[2025-08-23 14:27:03] info: 🏢 Company: None
+[2025-08-23 14:27:03] info: 🎯 Auto-owner mode: All operations will use "jacobbanks" as default owner
