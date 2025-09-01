@@ -17,16 +17,13 @@ import (
 
 type ConfigSummary struct {
 	Host	string `json:"Host"`
-	
 }
 
 func GetConfig() {
 	var config *string
 	if home := homedir.HomeDir(); home != "" {
-		fmt.Println("Home, in if", home)
 		config = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to kube config file")
 	} else {
-		fmt.Println("home in else", home)
 		config = flag.String("kubeconfig", "", "absolute path to kube config")
 	}
 	flag.Parse()

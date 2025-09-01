@@ -1,44 +1,51 @@
 package k8s
 
-// TODO: Implement Kubernetes client wrapper
 import (
-	"context"
-	"fmt"
-	"path/filepath"
-
-	"flag"
-
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"kubeoptic/internal/models"
+	// v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
+	cmd "k8s.io/client-go/tools/clientcmd"
+	"os"
 )
 
-func CountPods() {
-	var config *string
-	if home := homedir.HomeDir(); home != "" {
-		config = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to kube config file")
-	} else {
-		config = flag.String("kubeconfig", "", "absolute path to kube config")
-	}
-	flag.Parse()
-
-	kubeconfig, err := clientcmd.BuildConfigFromFlags("", *config)
+func loadDataFromConfig(ko *models.KubeOptic) {
+	kubeconfig, err := cmd.LoadFromFile(ko.KubeConfigPath)
 	if err != nil {
 		panic(err.Error())
 	}
 
-	clientset, err := kubernetes.NewForConfig(kubeconfig)
+	contexts := make([]string, 0, len(kubeconfig.Contexts))
+	for name := range kubeconfig.Contexts {
+		contexts = append(contexts, name)
+	}
+	ko.SetContexts(&contexts)
+	ko.SelectContext(kubeconfig.CurrentContext)
+	restConfig, err := cmd.RESTConfigFromKubeConfig(*ko.RawConfig)
 	if err != nil {
 		panic(err.Error())
 	}
 
-	pods, err := clientset.CoreV1().Pods("").List(context.TODO(), v1.ListOptions{})
+	clientset, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		panic(err.Error())
 	}
-	fmt.Printf("There are %d pods in the cluster", len(pods.Items))
-
+	ko.AttachClient(clientset)
+	ko.ListPods()
+	ko.SelectPod("api2-projects-496sportcalcs-5d89bd45b6-7xs96")
+	ko.PrintLogsForPod()
 }
 
+func Init(configPath *string) models.KubeOptic {
+	byteData, err := os.ReadFile(*configPath)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	k := &models.KubeOptic{
+		KubeConfigPath: *configPath,
+		RawConfig: &byteData,
+	}
+	loadDataFromConfig(k)
+	return *k
+}
 

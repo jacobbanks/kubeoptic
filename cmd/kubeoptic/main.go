@@ -1,12 +1,12 @@
 package main
 
 import (
-	// "fmt"
+	"fmt"
 	"path/filepath"
 
 	"flag"
 	"kubeoptic/internal/k8s"
-	"kubeoptic/internal/models"
+	// "kubeoptic/internal/models"
 
 	// v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	// kube "k8s.io/client-go/kubernetes"
@@ -26,10 +26,7 @@ func main() {
 	}
 
 	flag.Parse()
-	ko := models.NewKubeOptic(configpath)
-	k8s.LoadDataFromConfig(ko)
-
-
-
+	ko := k8s.Init(configpath)
+	fmt.Printf("Current Context: %s, Available Context: %v", ko.SelectedContext, *ko.Contexts)
 	// k8s.CountPods()
 }
