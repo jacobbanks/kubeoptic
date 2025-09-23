@@ -1,141 +1,64 @@
 package tui
 
+// Re-export message types from messages package to maintain compatibility
+// This allows existing code to continue using tui.MessageType while
+// avoiding import cycles
+
 import (
-	"kubeoptic/internal/services"
+	"kubeoptic/internal/messages"
 )
 
 // StatusType represents the type of status message
-type StatusType int
+type StatusType = messages.StatusType
 
 const (
-	StatusInfo StatusType = iota
-	StatusSuccess
-	StatusWarning
-	StatusError
+	StatusInfo    = messages.StatusInfo
+	StatusSuccess = messages.StatusSuccess
+	StatusWarning = messages.StatusWarning
+	StatusError   = messages.StatusError
 )
 
-// String returns the string representation of StatusType
-func (s StatusType) String() string {
-	switch s {
-	case StatusInfo:
-		return "info"
-	case StatusSuccess:
-		return "success"
-	case StatusWarning:
-		return "warning"
-	case StatusError:
-		return "error"
-	default:
-		return "unknown"
-	}
-}
-
-// TUI Message Types for Bubble Tea Update() pattern
-
-// Navigation Messages
-type NavigateMsg struct {
-	Direction NavigationDirection
-}
-
-type NavigationDirection int
+// Message Types - re-exported from messages package
+type NavigateMsg = messages.NavigateMsg
+type NavigationDirection = messages.NavigationDirection
 
 const (
-	NavigateUp NavigationDirection = iota
-	NavigateDown
-	NavigateLeft
-	NavigateRight
-	NavigateBack
-	NavigateForward
+	NavigateUp      = messages.NavigateUp
+	NavigateDown    = messages.NavigateDown
+	NavigateLeft    = messages.NavigateLeft
+	NavigateRight   = messages.NavigateRight
+	NavigateBack    = messages.NavigateBack
+	NavigateForward = messages.NavigateForward
 )
 
 // Data Messages
-type ContextsLoadedMsg struct {
-	Contexts []services.Context
-	Error    error
-}
-
-type NamespacesLoadedMsg struct {
-	Namespaces []string
-	Error      error
-}
-
-type PodsLoadedMsg struct {
-	Pods  []services.Pod
-	Error error
-}
-
-type ContextSelectedMsg struct {
-	Context *services.Context
-}
-
-type PodSelectedMsg struct {
-	Pod *services.Pod
-}
+type ContextsLoadedMsg = messages.ContextsLoadedMsg
+type NamespacesLoadedMsg = messages.NamespacesLoadedMsg
+type PodsLoadedMsg = messages.PodsLoadedMsg
+type ContextSelectedMsg = messages.ContextSelectedMsg
+type PodSelectedMsg = messages.PodSelectedMsg
 
 // Log Messages
-type LogChunkMsg struct {
-	Data  string
-	EOF   bool
-	Error error
-}
-
-type LogStreamStartedMsg struct {
-	Pod *services.Pod
-}
-
-type LogStreamStoppedMsg struct {
-	Reason string
-}
-
-type ToggleFollowMsg struct{}
+type LogChunkMsg = messages.LogChunkMsg
+type LogStreamStartedMsg = messages.LogStreamStartedMsg
+type LogStreamStoppedMsg = messages.LogStreamStoppedMsg
+type ToggleFollowMsg = messages.ToggleFollowMsg
 
 // Search Messages
-type SearchQueryChangedMsg struct {
-	Query string
-}
-
-type SearchResultsMsg struct {
-	Results []services.Pod
-	Query   string
-}
-
-type ClearSearchMsg struct{}
+type SearchQueryChangedMsg = messages.SearchQueryChangedMsg
+type SearchResultsMsg = messages.SearchResultsMsg
+type ClearSearchMsg = messages.ClearSearchMsg
 
 // UI Messages
-type WindowResizeMsg struct {
-	Width  int
-	Height int
-}
-
-type FocusChangedMsg struct {
-	Component string
-	Focused   bool
-}
-
-type ErrorMsg struct {
-	Error   error
-	Context string
-}
-
-type StatusMsg struct {
-	Message string
-	Type    StatusType
-}
-
-type ClearStatusMsg struct{}
+type WindowResizeMsg = messages.WindowResizeMsg
+type FocusChangedMsg = messages.FocusChangedMsg
+type ErrorMsg = messages.ErrorMsg
+type StatusMsg = messages.StatusMsg
+type ClearStatusMsg = messages.ClearStatusMsg
 
 // System Messages
-type InitCompleteMsg struct{}
-
-type ShutdownMsg struct{}
-
-type RefreshDataMsg struct{}
-
-// Loading state messages
-type LoadingStartedMsg struct {
-	Component string
-}
-
-type LoadingCompletedMsg struct {
-	Component string
-}
+type InitCompleteMsg = messages.InitCompleteMsg
+type ShutdownMsg = messages.ShutdownMsg
+type RefreshDataMsg = messages.RefreshDataMsg
+type LoadingStartedMsg = messages.LoadingStartedMsg
+type LoadingCompletedMsg = messages.LoadingCompletedMsg

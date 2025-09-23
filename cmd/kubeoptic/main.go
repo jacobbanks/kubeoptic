@@ -6,13 +6,17 @@ import (
 	"log"
 	"os"
 
+	tea "github.com/charmbracelet/bubbletea"
+
 	"kubeoptic/internal/models"
 	"kubeoptic/internal/services"
+	"kubeoptic/internal/tui"
 )
 
 func main() {
 	// Parse command line flags
 	configPath := flag.String("config", "", "path to kubeconfig file")
+	debug := flag.Bool("debug", false, "enable debug mode (skip TUI)")
 	flag.Parse()
 
 	// Initialize services
@@ -49,25 +53,40 @@ func main() {
 		log.Fatalf("Failed to load kubeconfig: %v", err)
 	}
 
-	// Print current state (temporary - will be replaced by TUI)
-	fmt.Printf("kubeoptic initialized successfully!\n")
-	fmt.Printf("Current Context: %s\n", kubeoptic.GetSelectedContext())
-	fmt.Printf("Available Contexts: ")
-	for i, ctx := range kubeoptic.GetContexts() {
-		if i > 0 {
-			fmt.Print(", ")
+	// Debug mode - print information and exit
+	if *debug {
+		fmt.Printf("kubeoptic initialized successfully!\n")
+		fmt.Printf("Current Context: %s\n", kubeoptic.GetSelectedContext())
+		fmt.Printf("Available Contexts: ")
+		for i, ctx := range kubeoptic.GetContexts() {
+			if i > 0 {
+				fmt.Print(", ")
+			}
+			fmt.Print(ctx.Name)
 		}
-		fmt.Print(ctx.Name)
-	}
-	fmt.Printf("\nAvailable Namespaces: ")
-	for i, ns := range kubeoptic.GetNamespaces() {
-		if i > 0 {
-			fmt.Print(", ")
+		fmt.Printf("\nAvailable Namespaces: ")
+		for i, ns := range kubeoptic.GetNamespaces() {
+			if i > 0 {
+				fmt.Print(", ")
+			}
+			fmt.Print(ns.Name)
 		}
-		fmt.Print(ns)
+		fmt.Printf("\n")
+		return
 	}
-	fmt.Printf("\n")
 
-	// TODO: Launch TUI here
-	fmt.Println("\nTUI not implemented yet - this is just the architecture demo!")
+	// Launch TUI
+	app := tui.NewApp(kubeoptic)
+
+	// Create and run the Bubble Tea program
+	program := tea.NewProgram(
+		app,
+		tea.WithAltScreen(),       // Use alternate screen buffer
+		tea.WithMouseCellMotion(), // Enable mouse support
+	)
+
+	// Run the program
+	if _, err := program.Run(); err != nil {
+		log.Fatalf("Error running TUI: %v", err)
+	}
 }

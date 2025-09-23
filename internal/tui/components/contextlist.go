@@ -8,8 +8,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
+	"kubeoptic/internal/messages"
 	"kubeoptic/internal/services"
-	"kubeoptic/internal/tui"
 )
 
 // ContextItem represents a Kubernetes context for the list
@@ -87,7 +87,7 @@ func (cl ContextList) Update(msg tea.Msg) (ContextList, tea.Cmd) {
 			// Send a context selection message
 			if selectedContext := cl.SelectedContext(); selectedContext != nil {
 				return cl, func() tea.Msg {
-					return tui.ContextSelectedMsg{Context: selectedContext}
+					return messages.ContextSelectedMsg{Context: selectedContext}
 				}
 			}
 		}
