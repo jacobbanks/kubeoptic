@@ -1,89 +1,223 @@
-package models 
+package models
 
 import (
 	"context"
 	"fmt"
-	"bufio"
-	"k8s.io/client-go/kubernetes"
-	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"io"
 
-)	
+	"kubeoptic/internal/services"
+)
 
-type KubeOptic struct {
-	client *kubernetes.Clientset
-	Contexts *[]string
-	KubeConfigPath string
-	SelectedContext string
-	SelectedSubscription string
-	selectedPod string
-	Subscriptions *[]string
-	RawConfig *[]byte
+type ViewType int
+
+const (
+	ContextView ViewType = iota
+	NamespaceView
+	PodView
+	LogView
+)
+
+type Kubeoptic struct {
+	// Services
+	configSvc     services.ConfigService
+	podSvc        services.PodService
+	namespaceSvc  services.NamespaceService
+
+	// Navigation state
+	focusedView   ViewType
+	contexts      []services.Context
+	namespaces    []string
+	pods          []services.Pod
+	filteredPods  []services.Pod
+
+	// Current selections
+	selectedContext   string
+	selectedNamespace string
+	selectedPod       *services.Pod
+
+	// Search state
+	podSearchQuery string
+	showingXofY    string
+
+	// Log streaming
+	logBuffer   []string
+	isFollowing bool
+	logStream   io.ReadCloser
 }
 
 
-
-
-func (k *KubeOptic) AttachClient(c *kubernetes.Clientset) {
-	k.client = c
-}
-
-
-func (k *KubeOptic) PrintLogsForPod() {
-	req := k.client.CoreV1().Pods("default").GetLogs(k.selectedPod, &corev1.PodLogOptions{}) 
-	reader, err := req.Stream(context.TODO())
-	if err != nil {
-		panic(err.Error())
-	}
-	scanner := bufio.NewScanner(reader)
-	for scanner.Scan() {
-		log := scanner.Text()
-		fmt.Printf("%s \n", log)
+func NewKubeoptic(configSvc services.ConfigService, podSvc services.PodService, namespaceSvc services.NamespaceService) *Kubeoptic {
+	return &Kubeoptic{
+		configSvc:         configSvc,
+		podSvc:           podSvc,
+		namespaceSvc:     namespaceSvc,
+		focusedView:      ContextView,
+		selectedNamespace: "default",
 	}
 }
 
-func (k *KubeOptic) ListPods() {
-	pods, err := k.client.CoreV1().Pods("default").List(context.TODO(), v1.ListOptions{})
-	if err != nil {
-		panic(err.Error())
-	}
-
-	for _, pod := range pods.Items {
-		fmt.Printf("Pod Name: %s \n", pod.Name)
-	}
-}
-
-
-func (k *KubeOptic) SelectPod(podName string) {
-	pods, err := k.client.CoreV1().Pods("default").List(context.TODO(), v1.ListOptions{})
-	if err != nil {
-		panic(err.Error())
-	}
-
-	for _, pod := range pods.Items {
-		if pod.Name == podName {
-			k.selectedPod = pod.Name
+// Navigation methods
+func (k *Kubeoptic) SelectContext(contextName string) error {
+	for _, ctx := range k.contexts {
+		if ctx.Name == contextName {
+			k.selectedContext = contextName
+			k.focusedView = NamespaceView
+			return k.refreshNamespaces()
 		}
 	}
-	fmt.Printf("Selected Pod: %s", k.selectedPod)
+	return fmt.Errorf("context %s not found", contextName)
 }
 
-func (k *KubeOptic) SelectContext(newContext string) {
-	k.SelectedContext = newContext
+func (k *Kubeoptic) SelectNamespace(namespace string) error {
+	k.selectedNamespace = namespace
+	k.focusedView = PodView
+	return k.refreshPods()
 }
 
-func (k *KubeOptic) SelectSubscription(subscription string) {
-	k.SelectedSubscription = subscription
+func (k *Kubeoptic) SelectPod(podName string) error {
+	for _, pod := range k.filteredPods {
+		if pod.Name == podName {
+			k.selectedPod = &pod
+			k.focusedView = LogView
+			return k.startLogStream()
+		}
+	}
+	return fmt.Errorf("pod %s not found", podName)
 }
 
-func (k *KubeOptic) SetKubeConfigPath(path string) {
-	k.KubeConfigPath = path
+// Search methods
+func (k *Kubeoptic) SearchPods(query string) error {
+	k.podSearchQuery = query
+	ctx := context.Background()
+	
+	filteredPods, err := k.podSvc.SearchPods(ctx, k.selectedNamespace, query)
+	if err != nil {
+		return fmt.Errorf("failed to search pods: %w", err)
+	}
+	
+	k.filteredPods = filteredPods
+	k.updatePodCount()
+	return nil
 }
 
-func (k *KubeOptic) SetSubscriptions(subs *[]string) {
-	k.Subscriptions = subs
+func (k *Kubeoptic) ClearSearch() error {
+	k.podSearchQuery = ""
+	k.filteredPods = k.pods
+	k.updatePodCount()
+	return nil
 }
 
-func (k *KubeOptic) SetContexts(contexts *[]string) {
-	k.Contexts = contexts
+// Data loading methods
+func (k *Kubeoptic) LoadContexts(configPath string) error {
+	contexts, currentContext, client, err := k.configSvc.LoadContexts(configPath)
+	if err != nil {
+		return fmt.Errorf("failed to load contexts: %w", err)
+	}
+	
+	k.contexts = contexts
+	k.selectedContext = currentContext
+	
+	// Update services with the new client
+	k.podSvc = services.NewPodService(client)
+	k.namespaceSvc = services.NewNamespaceService(client)
+	
+	return k.refreshNamespaces()
+}
+
+func (k *Kubeoptic) refreshNamespaces() error {
+	ctx := context.Background()
+	namespaces, err := k.namespaceSvc.ListNamespaces(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to refresh namespaces: %w", err)
+	}
+	
+	k.namespaces = namespaces
+	return nil
+}
+
+func (k *Kubeoptic) refreshPods() error {
+	ctx := context.Background()
+	pods, err := k.podSvc.ListPods(ctx, k.selectedNamespace)
+	if err != nil {
+		return fmt.Errorf("failed to refresh pods: %w", err)
+	}
+	
+	k.pods = pods
+	k.filteredPods = pods
+	k.updatePodCount()
+	return nil
+}
+
+func (k *Kubeoptic) startLogStream() error {
+	if k.selectedPod == nil {
+		return fmt.Errorf("no pod selected")
+	}
+	
+	// Close existing stream
+	if k.logStream != nil {
+		k.logStream.Close()
+	}
+	
+	ctx := context.Background()
+	stream, err := k.podSvc.GetPodLogs(ctx, k.selectedPod.Name, k.selectedNamespace)
+	if err != nil {
+		return fmt.Errorf("failed to start log stream: %w", err)
+	}
+	
+	k.logStream = stream
+	k.isFollowing = true
+	return nil
+}
+
+func (k *Kubeoptic) updatePodCount() {
+	if k.podSearchQuery == "" {
+		k.showingXofY = fmt.Sprintf("%d pods", len(k.pods))
+	} else {
+		k.showingXofY = fmt.Sprintf("%d of %d pods", len(k.filteredPods), len(k.pods))
+	}
+}
+
+// Getters for TUI
+func (k *Kubeoptic) GetContexts() []services.Context {
+	return k.contexts
+}
+
+func (k *Kubeoptic) GetNamespaces() []string {
+	return k.namespaces
+}
+
+func (k *Kubeoptic) GetPods() []services.Pod {
+	return k.filteredPods
+}
+
+func (k *Kubeoptic) GetSelectedContext() string {
+	return k.selectedContext
+}
+
+func (k *Kubeoptic) GetSelectedNamespace() string {
+	return k.selectedNamespace
+}
+
+func (k *Kubeoptic) GetSelectedPod() *services.Pod {
+	return k.selectedPod
+}
+
+func (k *Kubeoptic) GetFocusedView() ViewType {
+	return k.focusedView
+}
+
+func (k *Kubeoptic) GetSearchQuery() string {
+	return k.podSearchQuery
+}
+
+func (k *Kubeoptic) GetPodCount() string {
+	return k.showingXofY
+}
+
+func (k *Kubeoptic) IsFollowing() bool {
+	return k.isFollowing
+}
+
+func (k *Kubeoptic) GetLogBuffer() []string {
+	return k.logBuffer
 }
