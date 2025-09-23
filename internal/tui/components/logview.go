@@ -1,3 +1,70 @@
+/*
+Package components provides the LogViewer component for kubeoptic TUI.
+
+# LogViewer Component
+
+The LogViewer is a sophisticated terminal-based log viewing component built with
+Bubble Tea and the viewport component. It provides real-time log streaming,
+search capabilities, and various viewing modes for Kubernetes pod logs.
+
+Features:
+- Real-time log streaming with automatic updates
+- Follow mode for auto-scrolling to new log entries
+- Full-text search with highlighting and navigation
+- Efficient handling of large log volumes (10,000+ lines)
+- Syntax highlighting for different log levels
+- Keyboard navigation and shortcuts
+- Error handling and recovery
+- Memory management with automatic buffer trimming
+
+Usage:
+
+	// Create a data provider (typically *models.Kubeoptic)
+	dataProvider := myKubeopticInstance
+
+	// Create the log viewer
+	logViewer := NewLogViewer(dataProvider, 120, 40)
+
+	// Focus the component
+	logViewer.Focus()
+
+	// Use in Bubble Tea application
+	program := tea.NewProgram(logViewer)
+	program.Run()
+
+Key Bindings:
+- / : Enter search mode
+- n : Navigate to next search result
+- N : Navigate to previous search result
+- f : Toggle follow mode
+- w : Toggle line wrapping
+- t : Toggle timestamps
+- g : Go to top
+- G : Go to bottom
+- ↑/k : Scroll up
+- ↓/j : Scroll down
+- PageUp/Ctrl+u : Page up
+- PageDown/Ctrl+d : Page down
+- Esc : Clear search or exit modes
+- q : Quit (if handled by parent)
+
+Performance Characteristics:
+- Handles up to 10,000 log lines in memory
+- Search limited to 1,000 results for performance
+- Efficient string operations with pre-computed lowercase
+- Automatic buffer management
+- Optimized rendering for large content
+
+Interface Compatibility:
+The LogViewer implements the following interfaces from internal/tui:
+- ComponentRenderer (Init, Update, View)
+- Focusable (Focus, Blur, IsFocused)
+- Resizable (SetSize)
+
+Thread Safety:
+The LogViewer is NOT thread-safe. All operations should be performed
+on the main Bubble Tea event loop thread.
+*/
 package components
 
 import (
