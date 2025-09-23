@@ -64,6 +64,10 @@ type PodsLoadedMsg struct {
 	Error error
 }
 
+type ContextSelectedMsg struct {
+	Context *services.Context
+}
+
 type PodSelectedMsg struct {
 	Pod *services.Pod
 }

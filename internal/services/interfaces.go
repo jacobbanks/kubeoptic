@@ -39,6 +39,21 @@ type PodService interface {
 	GetPodLogs(ctx context.Context, podName, namespace string) (io.ReadCloser, error)
 }
 
+type Namespace struct {
+	Name   string
+	Status NamespaceStatus
+	Labels map[string]string
+}
+
+type NamespaceStatus string
+
+const (
+	NamespaceActive      NamespaceStatus = "Active"
+	NamespaceTerminating NamespaceStatus = "Terminating"
+	NamespaceUnknown     NamespaceStatus = "Unknown"
+)
+
 type NamespaceService interface {
 	ListNamespaces(ctx context.Context) ([]string, error)
+	ListNamespacesDetailed(ctx context.Context) ([]Namespace, error)
 }

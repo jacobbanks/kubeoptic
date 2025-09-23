@@ -19,16 +19,16 @@ const (
 
 type Kubeoptic struct {
 	// Services
-	configSvc     services.ConfigService
-	podSvc        services.PodService
-	namespaceSvc  services.NamespaceService
+	configSvc    services.ConfigService
+	podSvc       services.PodService
+	namespaceSvc services.NamespaceService
 
 	// Navigation state
-	focusedView   ViewType
-	contexts      []services.Context
-	namespaces    []string
-	pods          []services.Pod
-	filteredPods  []services.Pod
+	focusedView  ViewType
+	contexts     []services.Context
+	namespaces   []services.Namespace
+	pods         []services.Pod
+	filteredPods []services.Pod
 
 	// Current selections
 	selectedContext   string
@@ -45,13 +45,12 @@ type Kubeoptic struct {
 	logStream   io.ReadCloser
 }
 
-
 func NewKubeoptic(configSvc services.ConfigService, podSvc services.PodService, namespaceSvc services.NamespaceService) *Kubeoptic {
 	return &Kubeoptic{
 		configSvc:         configSvc,
-		podSvc:           podSvc,
-		namespaceSvc:     namespaceSvc,
-		focusedView:      ContextView,
+		podSvc:            podSvc,
+		namespaceSvc:      namespaceSvc,
+		focusedView:       ContextView,
 		selectedNamespace: "default",
 	}
 }
@@ -89,12 +88,12 @@ func (k *Kubeoptic) SelectPod(podName string) error {
 func (k *Kubeoptic) SearchPods(query string) error {
 	k.podSearchQuery = query
 	ctx := context.Background()
-	
+
 	filteredPods, err := k.podSvc.SearchPods(ctx, k.selectedNamespace, query)
 	if err != nil {
 		return fmt.Errorf("failed to search pods: %w", err)
 	}
-	
+
 	k.filteredPods = filteredPods
 	k.updatePodCount()
 	return nil
@@ -113,24 +112,24 @@ func (k *Kubeoptic) LoadContexts(configPath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to load contexts: %w", err)
 	}
-	
+
 	k.contexts = contexts
 	k.selectedContext = currentContext
-	
+
 	// Update services with the new client
 	k.podSvc = services.NewPodService(client)
 	k.namespaceSvc = services.NewNamespaceService(client)
-	
+
 	return k.refreshNamespaces()
 }
 
 func (k *Kubeoptic) refreshNamespaces() error {
 	ctx := context.Background()
-	namespaces, err := k.namespaceSvc.ListNamespaces(ctx)
+	namespaces, err := k.namespaceSvc.ListNamespacesDetailed(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to refresh namespaces: %w", err)
 	}
-	
+
 	k.namespaces = namespaces
 	return nil
 }
@@ -141,7 +140,7 @@ func (k *Kubeoptic) refreshPods() error {
 	if err != nil {
 		return fmt.Errorf("failed to refresh pods: %w", err)
 	}
-	
+
 	k.pods = pods
 	k.filteredPods = pods
 	k.updatePodCount()
@@ -152,18 +151,18 @@ func (k *Kubeoptic) startLogStream() error {
 	if k.selectedPod == nil {
 		return fmt.Errorf("no pod selected")
 	}
-	
+
 	// Close existing stream
 	if k.logStream != nil {
 		k.logStream.Close()
 	}
-	
+
 	ctx := context.Background()
 	stream, err := k.podSvc.GetPodLogs(ctx, k.selectedPod.Name, k.selectedNamespace)
 	if err != nil {
 		return fmt.Errorf("failed to start log stream: %w", err)
 	}
-	
+
 	k.logStream = stream
 	k.isFollowing = true
 	return nil
@@ -182,7 +181,7 @@ func (k *Kubeoptic) GetContexts() []services.Context {
 	return k.contexts
 }
 
-func (k *Kubeoptic) GetNamespaces() []string {
+func (k *Kubeoptic) GetNamespaces() []services.Namespace {
 	return k.namespaces
 }
 
@@ -220,4 +219,9 @@ func (k *Kubeoptic) IsFollowing() bool {
 
 func (k *Kubeoptic) GetLogBuffer() []string {
 	return k.logBuffer
+}
+
+// SetNamespaces sets the namespaces list directly (used for testing)
+func (k *Kubeoptic) SetNamespaces(namespaces []services.Namespace) {
+	k.namespaces = namespaces
 }

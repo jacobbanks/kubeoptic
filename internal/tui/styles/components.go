@@ -89,6 +89,7 @@ type LogViewerStyles struct {
 	DebugLog   lipgloss.Style
 	Timestamp  lipgloss.Style
 	ScrollBar  lipgloss.Style
+	EmptyState lipgloss.Style
 }
 
 // NewLogViewerStyles creates styles for the log viewer
@@ -133,6 +134,12 @@ func NewLogViewerStyles(theme Theme, width, height int, focused bool) LogViewerS
 		ScrollBar: lipgloss.NewStyle().
 			Background(theme.Border).
 			Foreground(theme.Primary),
+
+		EmptyState: lipgloss.NewStyle().
+			Foreground(Gray).
+			Italic(true).
+			Align(lipgloss.Center).
+			Padding(PaddingLarge),
 	}
 }
 
