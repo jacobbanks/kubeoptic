@@ -26,6 +26,10 @@ const (
 	logChunkSize  = 100   // Process logs in chunks for better performance
 	streamTimeout = 5 * time.Second
 
+	// Performance optimizations
+	maxSearchResults = 1000                   // Limit search results for performance
+	debounceDelay    = 100 * time.Millisecond // Debounce search updates
+
 	// Search
 	maxSearchHistory = 50
 	searchPrompt     = "Search: "
@@ -482,22 +486,38 @@ func (lv *LogViewer) appendLogData(data string) {
 	lv.updateFilteredLines()
 }
 
+// updateFilteredLines updates the filtered lines based on search query with performance optimizations
 func (lv *LogViewer) updateFilteredLines() {
 	if lv.searchQuery == "" {
 		lv.filteredLines = lv.logLines
+		lv.searchResults = make([]int, 0)
 		return
 	}
 
+	// Performance optimization: limit search results and use case-insensitive search
 	lv.filteredLines = make([]string, 0, len(lv.logLines))
-	lv.searchResults = make([]int, 0)
+	lv.searchResults = make([]int, 0, maxSearchResults)
+
+	searchLower := strings.ToLower(lv.searchQuery)
 
 	for i, line := range lv.logLines {
-		if strings.Contains(strings.ToLower(line), strings.ToLower(lv.searchQuery)) {
+		if strings.Contains(strings.ToLower(line), searchLower) {
 			lv.filteredLines = append(lv.filteredLines, line)
-			lv.searchResults = append(lv.searchResults, i)
+
+			// Limit search results for performance
+			if len(lv.searchResults) < maxSearchResults {
+				lv.searchResults = append(lv.searchResults, i)
+			}
 		}
 	}
+
+	// If we hit the limit, indicate there are more results
+	if len(lv.searchResults) >= maxSearchResults {
+		// Could add a "more results available" indicator here
+	}
 }
+
+// Search functionality
 
 // Search functionality
 func (lv *LogViewer) enterSearchMode() {
@@ -527,6 +547,8 @@ func (lv *LogViewer) updateSearchResults() {
 		lv.jumpToSearchResult(lv.currentResult)
 	}
 }
+
+// Search functionality
 
 func (lv *LogViewer) nextSearchResult() {
 	if len(lv.searchResults) == 0 {
