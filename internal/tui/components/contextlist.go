@@ -79,14 +79,14 @@ func (cl ContextList) Init() tea.Cmd {
 }
 
 // Update handles messages for the context list
-func (cl ContextList) Update(msg tea.Msg) (ContextList, tea.Cmd) {
+func (cl ContextList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "enter":
 			// Send a context selection message
 			if selectedContext := cl.SelectedContext(); selectedContext != nil {
-				return cl, func() tea.Msg {
+				return tea.Model(cl), func() tea.Msg {
 					return messages.ContextSelectedMsg{Context: selectedContext}
 				}
 			}
@@ -95,7 +95,7 @@ func (cl ContextList) Update(msg tea.Msg) (ContextList, tea.Cmd) {
 
 	var cmd tea.Cmd
 	cl.list, cmd = cl.list.Update(msg)
-	return cl, cmd
+	return tea.Model(cl), cmd
 }
 
 // View renders the context list

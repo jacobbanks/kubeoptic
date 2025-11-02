@@ -11,6 +11,8 @@ import (
 	"kubeoptic/internal/models"
 	"kubeoptic/internal/services"
 	"kubeoptic/internal/tui"
+	"kubeoptic/internal/tui/components"
+	"kubeoptic/internal/tui/styles"
 )
 
 func main() {
@@ -64,7 +66,8 @@ func main() {
 			}
 			fmt.Print(ctx.Name)
 		}
-		fmt.Printf("\nAvailable Namespaces: ")
+		fmt.Printf("\n")
+		fmt.Printf("Available Namespaces: ")
 		for i, ns := range kubeoptic.GetNamespaces() {
 			if i > 0 {
 				fmt.Print(", ")
@@ -72,11 +75,39 @@ func main() {
 			fmt.Print(ns.Name)
 		}
 		fmt.Printf("\n")
+
+		// Test TUI component rendering
+		fmt.Printf("\n=== TUI Component Test ===\n")
+		contexts := kubeoptic.GetContexts()
+		contextList := components.NewContextList(contexts, kubeoptic.GetSelectedContext())
+		fmt.Printf("ContextList View:\n%s\n", contextList.View())
 		return
 	}
 
 	// Launch TUI
 	app := tui.NewApp(kubeoptic)
+
+	// Create TUI components
+	theme := styles.DefaultTheme()
+
+	// Create context list with available contexts
+	contexts := kubeoptic.GetContexts()
+	contextList := components.NewContextList(contexts, kubeoptic.GetSelectedContext())
+
+	// Create namespace list
+	namespaceList := components.NewNamespaceList(kubeoptic)
+
+	// Create pod list (initially empty, will be populated when namespace is selected)
+	podList := components.NewPodList([]services.Pod{}, 0, 0)
+
+	// Create log view
+	logView := components.NewLogViewer(kubeoptic, 0, 0)
+
+	// Create status bar
+	statusBar := components.NewStatusBar(theme, kubeoptic)
+
+	// Connect components to the app
+	app.SetComponents(contextList, namespaceList, podList, logView, statusBar)
 
 	// Create and run the Bubble Tea program
 	program := tea.NewProgram(

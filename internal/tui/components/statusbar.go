@@ -43,13 +43,18 @@ func (s *StatusBar) SetConnectionStatus(status string) {
 	s.connectionStatus = status
 }
 
+// Init implements tea.Model interface
+func (s *StatusBar) Init() tea.Cmd {
+	return nil
+}
+
 // Update handles tea.Msg updates
-func (s *StatusBar) Update(msg tea.Msg) (*StatusBar, tea.Cmd) {
+func (s *StatusBar) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		s.SetSize(msg.Width, msg.Height)
 	}
-	return s, nil
+	return tea.Model(s), nil
 }
 
 // View renders the status bar

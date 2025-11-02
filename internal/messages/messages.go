@@ -63,6 +63,12 @@ type LogStreamStoppedMsg struct {
 
 type ToggleFollowMsg struct{}
 
+type SaveLogsMsg struct {
+	FilePath string
+}
+
+type ToggleWrapMsg struct{}
+
 // Search Messages
 type SearchQueryChangedMsg struct {
 	Query string

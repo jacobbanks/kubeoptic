@@ -40,6 +40,9 @@ type App struct {
 	width        int
 	height       int
 
+	// Enhanced event handling
+	helpVisible bool
+
 	// Components as interfaces to avoid import cycle
 	contextList   ComponentRenderer
 	namespaceList ComponentRenderer
@@ -121,10 +124,30 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return a, nil
 
 	case tea.KeyMsg:
+		// Handle error overlay - any key clears the error
+		if a.err != nil {
+			a.err = nil
+			return a, nil
+		}
+
+		// Handle help overlay
+		if a.helpVisible {
+			switch msg.String() {
+			case "?", "esc":
+				a.helpVisible = false
+				return a, nil
+			}
+			return a, nil
+		}
+
 		// Handle global key bindings
 		switch msg.String() {
 		case "ctrl+c", "q":
 			return a, tea.Quit
+
+		case "?":
+			a.helpVisible = true
+			return a, nil
 
 		case "tab":
 			a.nextPanel()
@@ -210,6 +233,11 @@ func (a *App) View() string {
 
 	if a.err != nil {
 		return a.renderError()
+	}
+
+	// Render help overlay if visible
+	if a.helpVisible {
+		return a.renderHelpOverlay()
 	}
 
 	switch a.viewMode {
@@ -519,6 +547,14 @@ func (a *App) addPanelBorder(content string, focused bool) string {
 	panelWidth := a.width/3 - 2
 	panelHeight := a.height - 3
 
+	// Ensure minimum dimensions
+	if panelWidth < 10 {
+		panelWidth = 10
+	}
+	if panelHeight < 5 {
+		panelHeight = 5
+	}
+
 	return lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(borderColor).
@@ -593,4 +629,65 @@ func (a *App) IsFollowing() bool {
 
 func (a *App) SetFollowing(following bool) {
 	// TODO: Implement in Kubeoptic model
+}
+
+// renderHelpOverlay renders the help overlay
+func (a *App) renderHelpOverlay() string {
+	content := []string{
+		lipgloss.NewStyle().Bold(true).Foreground(a.theme.Primary).Render("Help - kubeoptic"),
+		"",
+		lipgloss.NewStyle().Foreground(a.theme.Secondary).Italic(true).Render("Current View: " + a.getCurrentViewName()),
+		"",
+		lipgloss.NewStyle().Bold(true).Foreground(a.theme.Secondary).Render("Global"),
+		a.formatKeyBinding("?", "help"),
+		a.formatKeyBinding("q, ctrl+c", "quit"),
+		a.formatKeyBinding("tab", "next panel"),
+		a.formatKeyBinding("shift+tab", "prev panel"),
+		a.formatKeyBinding("f", "toggle fullscreen"),
+		a.formatKeyBinding("esc", "back"),
+		"",
+		lipgloss.NewStyle().Bold(true).Foreground(a.theme.Secondary).Render("Navigation"),
+		a.formatKeyBinding("↑/↓, j/k", "navigate"),
+		a.formatKeyBinding("enter", "select"),
+		a.formatKeyBinding("/", "search"),
+		"",
+		"Press '?' or 'esc' to close help",
+	}
+
+	helpStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(a.theme.Primary).
+		Background(a.theme.Background).
+		Padding(1, 2).
+		Width(a.width - 8).
+		Height(a.height - 4)
+
+	return lipgloss.Place(a.width, a.height, lipgloss.Center, lipgloss.Center,
+		helpStyle.Render(lipgloss.JoinVertical(lipgloss.Left, content...)))
+}
+
+// getCurrentViewName returns the current view name for help display
+func (a *App) getCurrentViewName() string {
+	switch a.kubeoptic.GetFocusedView() {
+	case models.ContextView:
+		return "Contexts"
+	case models.NamespaceView:
+		return "Namespaces"
+	case models.PodView:
+		return "Pods"
+	case models.LogView:
+		return "Logs"
+	default:
+		return "Unknown"
+	}
+}
+
+// formatKeyBinding formats a key binding for display
+func (a *App) formatKeyBinding(keys, desc string) string {
+	keyStyle := lipgloss.NewStyle().Foreground(a.theme.Primary).Bold(true)
+	descStyle := lipgloss.NewStyle().Foreground(a.theme.Foreground)
+
+	return fmt.Sprintf("  %s  %s",
+		keyStyle.Width(12).Render(keys),
+		descStyle.Render(desc))
 }

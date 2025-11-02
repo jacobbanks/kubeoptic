@@ -44,6 +44,10 @@ type LogStreamStartedMsg = messages.LogStreamStartedMsg
 type LogStreamStoppedMsg = messages.LogStreamStoppedMsg
 type ToggleFollowMsg = messages.ToggleFollowMsg
 
+// Additional log operation messages
+type SaveLogsMsg = messages.SaveLogsMsg
+type ToggleWrapMsg = messages.ToggleWrapMsg
+
 // Search Messages
 type SearchQueryChangedMsg = messages.SearchQueryChangedMsg
 type SearchResultsMsg = messages.SearchResultsMsg

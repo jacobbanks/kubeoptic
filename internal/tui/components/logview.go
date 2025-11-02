@@ -306,10 +306,8 @@ func (lv *LogViewer) IsFocused() bool {
 
 // Init initializes the log viewer
 func (lv *LogViewer) Init() tea.Cmd {
-	return tea.Batch(
-		lv.startLogStream(),
-		lv.streamLogs(),
-	)
+	// Don't automatically start streaming - wait for a pod to be selected
+	return nil
 }
 
 // Update handles all events for the log viewer
